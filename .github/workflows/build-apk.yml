@@ -29,18 +29,38 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build debug APK
+      - name: Inspect project files
         run: |
-         find . -name settings.gradle.kts -print
-         find . -name build.gradle.kts -print
-         cd Companiyan
-         gradle --no-daemon :app:assembleDebug
+          echo "Repository root:"
+          ls -la
+          echo "Gradle settings files:"
+          find . -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print
+          echo "Gradle build files:"
+          find . -type f \( -name build.gradle -o -name build.gradle.kts \) -print
+
+      - name: Locate Android project
+        id: locate
+        shell: bash
+        run: |
+          SETTINGS=$(find . -type f \( -name settings.gradle -o -name settings.gradle.kts \) -not -path '*/.gradle/*' -print -quit)
+
+          if [ -z "$SETTINGS" ]; then
+            echo "::error::Missing settings.gradle or settings.gradle.kts. Upload the root Gradle configuration files."
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS")
+          echo "project_dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
+          echo "Using project directory: $PROJECT_DIR"
+
+      - name: Build debug APK
+        working-directory: ${{ steps.locate.outputs.project_dir }}
+        run: gradle --no-daemon :app:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: companiyan-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.locate.outputs.project_dir }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
-          
