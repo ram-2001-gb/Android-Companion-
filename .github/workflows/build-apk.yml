@@ -30,7 +30,11 @@ jobs:
           gradle-version: "8.9"
 
       - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
+        run: |
+         find . -name settings.gradle.kts -print
+         find . -name build.gradle.kts -print
+         cd Companiyan
+         gradle --no-daemon :app:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
